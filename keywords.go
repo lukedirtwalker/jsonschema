@@ -55,7 +55,7 @@ func DataType(data interface{}) string {
 type Type struct {
 	BaseValidator
 	strVal bool // set to true if Type decoded from a string, false if an array
-	vals   []string
+	Vals   []string
 }
 
 // NewType creates a new Type Validator
@@ -65,27 +65,27 @@ func NewType() Validator {
 
 // String returns the type(s) as a string, or unknown if there is no known type.
 func (t Type) String() string {
-	if len(t.vals) == 0 {
+	if len(t.Vals) == 0 {
 		return "unknown"
 	}
-	return strings.Join(t.vals, ",")
+	return strings.Join(t.Vals, ",")
 }
 
 // Validate checks to see if input data satisfies the type constraint
 func (t Type) Validate(propPath string, data interface{}, errs *[]ValError) {
 	jt := DataType(data)
-	for _, typestr := range t.vals {
+	for _, typestr := range t.Vals {
 		if jt == typestr || jt == "integer" && typestr == "number" {
 			return
 		}
 	}
-	if len(t.vals) == 1 {
-		t.AddError(errs, propPath, data, fmt.Sprintf(`type should be %s`, t.vals[0]))
+	if len(t.Vals) == 1 {
+		t.AddError(errs, propPath, data, fmt.Sprintf(`type should be %s`, t.Vals[0]))
 		return
 	}
 
 	str := ""
-	for _, ts := range t.vals {
+	for _, ts := range t.Vals {
 		str += ts + ","
 	}
 
@@ -98,27 +98,27 @@ func (t Type) JSONProp(name string) interface{} {
 	if err != nil {
 		return nil
 	}
-	if idx > len(t.vals) || idx < 0 {
+	if idx > len(t.Vals) || idx < 0 {
 		return nil
 	}
-	return t.vals[idx]
+	return t.Vals[idx]
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface for Type
 func (t *Type) UnmarshalJSON(data []byte) error {
 	var single string
 	if err := json.Unmarshal(data, &single); err == nil {
-		*t = Type{strVal: true, vals: []string{single}}
+		*t = Type{strVal: true, Vals: []string{single}}
 	} else {
 		var set []string
 		if err := json.Unmarshal(data, &set); err == nil {
-			*t = Type{vals: set}
+			*t = Type{Vals: set}
 		} else {
 			return err
 		}
 	}
 
-	for _, pr := range t.vals {
+	for _, pr := range t.Vals {
 		if !primitiveTypes[pr] {
 			return fmt.Errorf(`"%s" is not a valid type`, pr)
 		}
@@ -128,10 +128,10 @@ func (t *Type) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements the json.Marshaler interface for Type
 func (t Type) MarshalJSON() ([]byte, error) {
-	if t.strVal {
-		return json.Marshal(t.vals[0])
+	if t.strVal || len(t.Vals) == 1 {
+		return json.Marshal(t.Vals[0])
 	}
-	return json.Marshal(t.vals)
+	return json.Marshal(t.Vals)
 }
 
 // Enum validates successfully against this keyword if its value is equal to one of the
